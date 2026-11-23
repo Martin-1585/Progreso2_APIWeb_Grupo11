@@ -1,0 +1,30 @@
+﻿@model Progreso2_APIWeb.Models.ClimaResponse
+
+<h2>Clima en Quito</h2>
+<p>Actualizado: @Model.actual.hora</p>
+
+<h3>Ahora</h3>
+<p><strong>Temperatura:</strong> @Model.actual.temperatura °C</p>
+<p><strong>Humedad:</strong> @Model.actual.humedad %</p>
+<p><strong>Viento:</strong> @Model.actual.viento km/h</p>
+
+<h3>Próximos 7 días</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Fecha</th>
+            <th>Mínima</th>
+            <th>Máxima</th>
+        </tr>
+    </thead>
+    <tbody>
+        @for (int i = 0; i < Model.diario.fechas.Count; i++)
+        {
+            <tr>
+                <td>@Model.diario.fechas[i]</td>
+                <td>@Model.diario.tempMin[i] °C</td>
+                <td>@Model.diario.tempMax[i] °C</td>
+            </tr>
+        }
+    </tbody>
+</table>
