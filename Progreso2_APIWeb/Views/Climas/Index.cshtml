@@ -1,30 +1,281 @@
 ﻿@model Progreso2_APIWeb.Models.ClimaResponse
 
 <h2>Clima en Quito</h2>
-<p>Actualizado: @Model.actual.hora</p>
+<style>
+    /* ===== Fondo general celeste pastel ===== */
+    body {
+        background: linear-gradient(180deg, #dff3ff 0%, #c9eaff 100%);
+        min-height: 100vh;
+    }
 
-<h3>Ahora</h3>
-<p><strong>Temperatura:</strong> @Model.actual.temperatura °C</p>
-<p><strong>Humedad:</strong> @Model.actual.humedad %</p>
-<p><strong>Viento:</strong> @Model.actual.viento km/h</p>
+    .clima-wrapper {
+        position: relative;
+        overflow: hidden;
+        padding-bottom: 60px;
+        font-family: "Segoe UI", Roboto, sans-serif;
+        color: #1f3b57;
+    }
 
-<h3>Próximos 7 días</h3>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Fecha</th>
-            <th>Mínima</th>
-            <th>Máxima</th>
-        </tr>
-    </thead>
-    <tbody>
-        @for (int i = 0; i < Model.diario.fechas.Count; i++)
-        {
-            <tr>
-                <td>@Model.diario.fechas[i]</td>
-                <td>@Model.diario.tempMin[i] °C</td>
-                <td>@Model.diario.tempMax[i] °C</td>
-            </tr>
-        }
-    </tbody>
-</table>
+    /* ===== Header azul con nubes ===== */
+    .clima-header {
+        position: relative;
+        background: linear-gradient(135deg, #0d47a1 0%, #1976d2 60%, #42a5f5 100%);
+        color: #fff;
+        padding: 40px 30px 110px;
+        border-radius: 0 0 30px 30px;
+        overflow: hidden;
+        box-shadow: 0 6px 20px rgba(13, 71, 161, .35);
+    }
+
+    .clima-header h1 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 2.2rem;
+        position: relative;
+        z-index: 2;
+    }
+
+    .clima-header p {
+        margin: 6px 0 0;
+        opacity: .9;
+        position: relative;
+        z-index: 2;
+    }
+
+    .header-nubes {
+        position: absolute;
+        left: 0;
+        bottom: -2px;
+        width: 100%;
+        height: 110px;
+        z-index: 1;
+    }
+
+    .nube-flotante {
+        position: absolute;
+        opacity: .35;
+        animation: flotar 14s ease-in-out infinite;
+    }
+
+    /* ===== Decoraciones del fondo ===== */
+    .deco {
+        position: absolute;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    .deco-sol {
+        top: 150px;
+        right: 40px;
+        width: 130px;
+        animation: girar 40s linear infinite;
+    }
+
+    .deco-nube1 { top: 380px; left: -20px; width: 170px; opacity: .8; animation: flotar 12s ease-in-out infinite; }
+    .deco-nube2 { bottom: 40px; right: -10px; width: 200px; opacity: .8; animation: flotar 16s ease-in-out infinite; }
+    .deco-rayo1 { top: 470px; left: 110px; width: 45px; opacity: .85; animation: parpadeo 4s infinite; }
+    .deco-rayo2 { bottom: 120px; right: 150px; width: 38px; opacity: .85; animation: parpadeo 5s infinite 1s; }
+
+    /* ===== Contenido ===== */
+    .clima-contenido {
+        position: relative;
+        z-index: 1;
+        max-width: 900px;
+        margin: -70px auto 0;
+        padding: 0 20px;
+    }
+
+    .tarjeta {
+        background: rgba(255, 255, 255, .85);
+        backdrop-filter: blur(6px);
+        border-radius: 20px;
+        padding: 25px 30px;
+        margin-bottom: 25px;
+        box-shadow: 0 8px 25px rgba(25, 118, 210, .15);
+        border: 1px solid rgba(255, 255, 255, .9);
+    }
+
+    .tarjeta h3 {
+        margin-top: 0;
+        color: #1565c0;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .datos-ahora {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .dato {
+        flex: 1 1 180px;
+        background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+        border-radius: 16px;
+        padding: 18px;
+        text-align: center;
+    }
+
+    .dato .icono { font-size: 2rem; }
+    .dato .etiqueta { font-size: .9rem; color: #42618a; margin-top: 4px; }
+    .dato .valor { font-size: 1.7rem; font-weight: 700; color: #0d47a1; }
+
+    /* ===== Tabla ===== */
+    .tabla-clima {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 14px;
+        overflow: hidden;
+        margin: 0;
+    }
+
+    .tabla-clima thead th {
+        background: #1976d2;
+        color: #fff;
+        padding: 12px;
+        border: none;
+    }
+
+    .tabla-clima tbody td {
+        padding: 11px 12px;
+        border: none;
+    }
+
+    .tabla-clima tbody tr:nth-child(odd) td { background: #f1f9ff; }
+    .tabla-clima tbody tr:nth-child(even) td { background: #e1f2ff; }
+    .tabla-clima tbody tr:hover td { background: #cfe9ff; }
+
+    .temp-min { color: #1e88e5; font-weight: 600; }
+    .temp-max { color: #ef6c00; font-weight: 600; }
+
+    
+    @@keyframes flotar {
+        0%, 100% { transform: translateX(0); }
+        50% { transform: translateX(25px); }
+    }
+
+    @@keyframes girar {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    @@keyframes parpadeo {
+        0%, 85%, 100% { opacity: .85; }
+        90% { opacity: .2; }
+        95% { opacity: 1; }
+    }
+
+    @@media (max-width: 600px) {
+        .deco-sol { width: 80px; top: 130px; right: 10px; }
+        .clima-header h1 { font-size: 1.7rem; }
+    }
+</style>
+
+<div class="clima-wrapper">
+
+    <!-- ===== HEADER ===== -->
+    <header class="clima-header">
+        <!-- Nubes flotantes dentro del header -->
+        <svg class="nube-flotante" style="top:20px; right:15%; width:120px;" viewBox="0 0 64 40">
+            <path fill="#fff" d="M18 38h32a12 12 0 0 0 0-24 16 16 0 0 0-30-4A13 13 0 0 0 18 38z" />
+        </svg>
+        <svg class="nube-flotante" style="top:55px; left:55%; width:80px; animation-delay:3s;" viewBox="0 0 64 40">
+            <path fill="#fff" d="M18 38h32a12 12 0 0 0 0-24 16 16 0 0 0-30-4A13 13 0 0 0 18 38z" />
+        </svg>
+
+        <h1>☁️ Pronóstico del clima</h1>
+        <p>Actualizado: @Model.actual.hora</p>
+
+        <!-- Borde inferior en forma de nubes -->
+        <svg class="header-nubes" viewBox="0 0 1200 110" preserveAspectRatio="none">
+            <path fill="#dff3ff"
+                  d="M0 70 Q60 20 130 60 Q180 10 260 55 Q320 5 400 50 Q460 15 530 58
+                     Q600 0 680 52 Q740 12 820 55 Q880 8 950 52 Q1020 15 1090 58
+                     Q1150 25 1200 60 L1200 110 L0 110 Z" />
+        </svg>
+    </header>
+
+    <!-- ===== DECORACIONES DEL FONDO ===== -->
+    <!-- Sol -->
+    <svg class="deco deco-sol" viewBox="0 0 100 100">
+        <g stroke="#ffca28" stroke-width="5" stroke-linecap="round">
+            <line x1="50" y1="4" x2="50" y2="18" />
+            <line x1="50" y1="82" x2="50" y2="96" />
+            <line x1="4" y1="50" x2="18" y2="50" />
+            <line x1="82" y1="50" x2="96" y2="50" />
+            <line x1="17" y1="17" x2="27" y2="27" />
+            <line x1="73" y1="73" x2="83" y2="83" />
+            <line x1="17" y1="83" x2="27" y2="73" />
+            <line x1="73" y1="27" x2="83" y2="17" />
+        </g>
+        <circle cx="50" cy="50" r="24" fill="#ffd54f" />
+    </svg>
+
+    <!-- Nubes -->
+    <svg class="deco deco-nube1" viewBox="0 0 64 40">
+        <path fill="#ffffff" d="M18 38h32a12 12 0 0 0 0-24 16 16 0 0 0-30-4A13 13 0 0 0 18 38z" />
+    </svg>
+    <svg class="deco deco-nube2" viewBox="0 0 64 40">
+        <path fill="#ffffff" d="M18 38h32a12 12 0 0 0 0-24 16 16 0 0 0-30-4A13 13 0 0 0 18 38z" />
+    </svg>
+
+    <!-- Rayos -->
+    <svg class="deco deco-rayo1" viewBox="0 0 30 50">
+        <polygon fill="#ffb300" points="18,0 2,28 13,28 8,50 28,18 16,18" />
+    </svg>
+    <svg class="deco deco-rayo2" viewBox="0 0 30 50">
+        <polygon fill="#ffb300" points="18,0 2,28 13,28 8,50 28,18 16,18" />
+    </svg>
+
+    <!-- ===== CONTENIDO ===== -->
+    <main class="clima-contenido">
+
+        <section class="tarjeta">
+            <h3>☀️ Ahora</h3>
+            <div class="datos-ahora">
+                <div class="dato">
+                    <div class="icono">🌡️</div>
+                    <div class="valor">@Model.actual.temperatura °C</div>
+                    <div class="etiqueta">Temperatura</div>
+                </div>
+                <div class="dato">
+                    <div class="icono">💧</div>
+                    <div class="valor">@Model.actual.humedad %</div>
+                    <div class="etiqueta">Humedad</div>
+                </div>
+                <div class="dato">
+                    <div class="icono">🌬️</div>
+                    <div class="valor">@Model.actual.viento km/h</div>
+                    <div class="etiqueta">Viento</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="tarjeta">
+            <h3>⛅ Próximos 7 días</h3>
+            <table class="table tabla-clima">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Mínima</th>
+                        <th>Máxima</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < Model.diario.fechas.Count; i++)
+                    {
+                        <tr>
+                            <td>📅 @Model.diario.fechas[i]</td>
+                            <td class="temp-min">❄️ @Model.diario.tempMin[i] °C</td>
+                            <td class="temp-max">🔥 @Model.diario.tempMax[i] °C</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+
+    </main>
+</div>
